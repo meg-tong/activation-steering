@@ -2,10 +2,14 @@ import torch
 import os
 from tqdm import tqdm
 
+from src.model import Llama7BChatHelper
+from src.dataset import ComparisonDataset
 
-def generate_vectors(model, dataset, 
-                                       directory: str = "data/vectors", 
-                                       start_layer=6, end_layer=20):
+
+def generate_vectors(model: Llama7BChatHelper, 
+                     dataset: ComparisonDataset,
+                     directory: str = "data/vectors", 
+                     start_layer=6, end_layer=20):
     layers = list(range(start_layer, end_layer + 1))
     diffs = dict([(layer, []) for layer in layers])
     model.set_save_internal_decodings(False)
