@@ -1,6 +1,7 @@
 import torch
 import os
 from tqdm import tqdm
+import logging
 
 from src.model import Llama7BChatHelper
 from src.dataset import ComparisonDataset
@@ -14,10 +15,13 @@ def generate_vectors(model: Llama7BChatHelper,
     layers = list(range(start_layer, end_layer + 1))
     if not overwrite:
         layers = [layer for layer in layers if not os.path.exists(os.path.join(directory, f"vector_layer_{layer}.pt"))]
+    if len(layers) == 0:
+        logging.info("Skipping generating vectors as they already exist")
+        return
     diffs = dict([(layer, []) for layer in layers])
     model.set_save_internal_decodings(False)
     model.reset_all()
-    for b_tokens, ub_tokens in tqdm(dataset, desc="Processing prompts"):
+    for b_tokens, ub_tokens in tqdm(dataset, desc="Generating vectors from dataset"):
         b_tokens = b_tokens.to(model.device)
         ub_tokens = ub_tokens.to(model.device)
         model.get_logits(b_tokens)
@@ -45,10 +49,10 @@ def get_steered_outputs(model: Llama7BChatHelper,
                         prompt: str,
                         layer: int,
                         multiplier: int,
-                        max_length: int,
+                        max_length: int = 20,
                         first_token_only=False,
                         start=" The answer is (",
-                        split=" The answer is"):
+                        split=" The answer is ("):
     
     model.set_only_add_to_first_token(first_token_only)
     vec = get_vec(layer)

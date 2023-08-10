@@ -2,6 +2,7 @@ import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from matplotlib import pyplot as plt
 from matplotlib.ticker import ScalarFormatter
+import logging
 
 
 def prompt_to_tokens(tokenizer, system_prompt, instruction, model_output):
@@ -9,7 +10,7 @@ def prompt_to_tokens(tokenizer, system_prompt, instruction, model_output):
     B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
     dialog_content = B_SYS + system_prompt + E_SYS + instruction.strip()
     dialog_tokens = tokenizer.encode(
-        f"{B_INST} {dialog_content.strip()} {E_INST}{model_output.strip()}"
+        f"{B_INST} {dialog_content.strip()} {E_INST}{model_output}"
     )
     return torch.tensor(dialog_tokens).unsqueeze(0)
 
@@ -97,9 +98,11 @@ class Llama7BChatHelper:
     def __init__(self, token, system_prompt):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.system_prompt = system_prompt
+        logging.info("Loading huggingface meta-llama/llama-2-7b-chat-hf tokenizer")
         self.tokenizer = AutoTokenizer.from_pretrained(
             "meta-llama/Llama-2-7b-chat-hf", use_auth_token=token
         )
+        logging.info("Loading huggingface meta-llama/llama-2-7b-chat-hf model")
         self.model = AutoModelForCausalLM.from_pretrained(
             "meta-llama/Llama-2-7b-chat-hf", use_auth_token=token
         ).to(self.device)

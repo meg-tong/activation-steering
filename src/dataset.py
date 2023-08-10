@@ -5,6 +5,7 @@ from datasets import load_dataset
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer
 from typing import Dict
+import logging
 
 import src.model
 import src.utils
@@ -15,7 +16,7 @@ BIASED_ANSWER_KEY = "biased_answer"
 UNBIASED_ANSWER_KEY = "unbiased_answer"
 QUESTION_KEY = "question"
 CHOICES_KEY = "choices"
-INDEX_TO_LETTER = {0: "A", 1: "B", 2: "C"}
+INDEX_TO_LETTER = {0: " (A)", 1: " (B)", 2: " (C)"}
 
 
 def get_bbq_dataset(configs: List[str], 
@@ -25,6 +26,7 @@ def get_bbq_dataset(configs: List[str],
     """
     Get original BBQ dataset from huggingface and save it to a jsonl file.
     """
+    logging.info("Getting BBQ dataset from huggingface")
     dfs = []
     for config in configs: 
         dataset = load_dataset("heegyu/bbq", config)
@@ -71,6 +73,7 @@ def generate_bias_dataset(bbq_dataset_filename: str = "data/bbq_dataset.jsonl",
     Generate an alternative version of the original BBQ dataset where
     each question has a binary option only.
     """
+    logging.info("Generating bias dataset from BBQ dataset")
     bbq_dataset = src.utils.load_from_jsonl(bbq_dataset_filename)
     bias_dataset = []
     for d in bbq_dataset:
@@ -88,6 +91,7 @@ def generate_bias_dataset(bbq_dataset_filename: str = "data/bbq_dataset.jsonl",
 
 class ComparisonDataset(Dataset):
     def __init__(self, data, system_prompt):
+        logging.info("Loading comparison dataset")
         self.data = data
         self.system_prompt = system_prompt
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -105,9 +109,16 @@ class ComparisonDataset(Dataset):
                         question_polarity: Optional[str] = "neg",
                         context_condition: Optional[str] = None,
                         bbq_filename: str = "data/bbq_dataset.jsonl", 
-                        bias_filename: str ="data/bias_dataset.jsonl"):
-        get_bbq_dataset(configs, bbq_filename, question_polarity, context_condition)
-        generate_bias_dataset(bbq_filename, bias_filename)
+                        bias_filename: str ="data/bias_dataset.jsonl",
+                        overwrite: bool = False):
+        if overwrite or not os.path.exists(bbq_filename):
+            get_bbq_dataset(configs, bbq_filename, question_polarity, context_condition)
+        else:
+            logging.info(f"Skipping getting BBQ dataset as {bbq_filename} already exists")
+        if overwrite or not os.path.exists(bias_filename):
+            generate_bias_dataset(bbq_filename, bias_filename)
+        else:
+            logging.info(f"Skipping generating bias dataset as {bias_filename} already exists")
         return cls.from_jsonl(bias_filename, system_prompt)
 
     def __len__(self):
