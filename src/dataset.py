@@ -6,8 +6,8 @@ from torch.utils.data import Dataset
 from transformers import AutoTokenizer
 from typing import Dict
 
-import model
-import utils
+import src.model
+import src.utils
 
 
 hf_token = os.environ["HF_TOKEN"]
@@ -71,7 +71,7 @@ def generate_bias_dataset(bbq_dataset_filename: str = "data/bbq_dataset.jsonl",
     Generate an alternative version of the original BBQ dataset where
     each question has a binary option only.
     """
-    bbq_dataset = utils.load_from_jsonl(bbq_dataset_filename)
+    bbq_dataset = src.utils.load_from_jsonl(bbq_dataset_filename)
     bias_dataset = []
     for d in bbq_dataset:
         biased_answer = get_biased_answer(d)
@@ -83,7 +83,7 @@ def generate_bias_dataset(bbq_dataset_filename: str = "data/bbq_dataset.jsonl",
                                  UNBIASED_ANSWER_KEY: unbiased_answer, 
                                  QUESTION_KEY: question,
                                  CHOICES_KEY: choices})
-    utils.save_to_jsonl(bias_dataset, bias_dataset_filename)
+    src.utils.save_to_jsonl(bias_dataset, bias_dataset_filename)
          
 
 class ComparisonDataset(Dataset):
@@ -97,7 +97,7 @@ class ComparisonDataset(Dataset):
         
     @classmethod
     def from_jsonl(cls, filename, system_prompt):
-        return cls(utils.load_from_jsonl(filename), system_prompt)
+        return cls(src.utils.load_from_jsonl(filename), system_prompt)
     
     @classmethod
     def from_bbq_config(cls, configs: List[str], 
@@ -118,6 +118,6 @@ class ComparisonDataset(Dataset):
         b_text = item[BIASED_ANSWER_KEY]
         ub_text = item[UNBIASED_ANSWER_KEY]
         q_text = item[QUESTION_KEY] + item[CHOICES_KEY]
-        b_tokens = model.prompt_to_tokens(self.tokenizer, self.system_prompt, instruction=q_text, model_output=b_text)
-        ub_tokens = model.prompt_to_tokens(self.tokenizer, self.system_prompt, instruction=q_text, model_output=ub_text)
+        b_tokens = src.model.prompt_to_tokens(self.tokenizer, self.system_prompt, instruction=q_text, model_output=b_text)
+        ub_tokens = src.model.prompt_to_tokens(self.tokenizer, self.system_prompt, instruction=q_text, model_output=ub_text)
         return b_tokens, ub_tokens
