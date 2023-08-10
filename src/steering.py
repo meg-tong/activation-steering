@@ -9,8 +9,11 @@ from src.dataset import ComparisonDataset
 def generate_vectors(model: Llama7BChatHelper, 
                      dataset: ComparisonDataset,
                      directory: str = "data/vectors", 
+                     overwrite: bool = False,
                      start_layer=6, end_layer=20):
     layers = list(range(start_layer, end_layer + 1))
+    if not overwrite:
+        layers = [layer for layer in layers if not os.path.exists(os.path.join(directory, f"vector_layer_{layer}.pt"))]
     diffs = dict([(layer, []) for layer in layers])
     model.set_save_internal_decodings(False)
     model.reset_all()
@@ -32,3 +35,41 @@ def generate_vectors(model: Llama7BChatHelper,
         torch.save(diffs[layer], os.path.join(directory, f"diff_layer_{layer}.pt"))
         vec = diffs[layer].mean(dim=0)
         torch.save(vec, os.path.join(directory, f"vector_layer_{layer}.pt"))
+        
+        
+def get_vec(layer, directory="data/vectors"):
+    return torch.load(os.path.join(directory, f"vector_layer_{layer}.pt"))        
+
+        
+def get_steered_outputs(model: Llama7BChatHelper,
+                        prompt: str,
+                        layer: int,
+                        multiplier: int,
+                        max_length: int,
+                        first_token_only=False,
+                        start=" The answer is (",
+                        split=" The answer is"):
+    
+    model.set_only_add_to_first_token(first_token_only)
+    vec = get_vec(layer)
+    pos_multiplier = multiplier
+    neg_multiplier = multiplier * -1.0
+    model.set_save_internal_decodings(False)
+    
+    model.reset_all()
+    model.set_add_activations(layer, pos_multiplier * vec.cuda())
+    answer_plus_bias = model.generate_text(prompt, model_output=start, max_length=max_length)
+    
+    model.reset_all()
+    model.set_add_activations(layer, neg_multiplier * vec.cuda())
+    answer_minus_bias = model.generate_text(prompt, model_output=start, max_length=max_length)
+    
+    model.reset_all()
+    answer = model.generate_text(prompt, model_output=start, max_length=max_length)
+
+    if split != "":
+        answer_plus_bias = answer_plus_bias.split(split)[-1]
+        answer_minus_bias = answer_minus_bias.split(split)[-1]
+        answer = answer.split(split)[-1]
+        
+    return {"answer": answer, "answer+bias": answer_plus_bias, "answer-bias": answer_minus_bias}
