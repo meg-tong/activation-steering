@@ -13,7 +13,7 @@ model - bias vector => there is no definitive answer to this question, as it is 
 ```
 
 
-## A **bias** vector for `llama-2-7b-chat`
+## A bias-correlated activation vector for `llama-2-7b-chat`
 
 
 1. Generate a "bias dataset"
@@ -22,15 +22,15 @@ model - bias vector => there is no definitive answer to this question, as it is 
 - Split it into "train" and test sets.
   - "train": `["Race_ethnicity", "Nationality"]`
   - test: `["Age", "Disability_status", "Gender_identity", "Physical_appearance", "Religion", "SES", "Sexual_orientation"]`
-2. Calculate the activation vectors per layer between the model giving "biased" and "unbiased" answers on the train set 
+2. Calculate the activation vectors per layer between the model giving biased and unbiased answers on the "train" set 
 3. Find the best bias activation vector
 - Grid searching layer and multiplier and testing on a subset of the test set
 - Confirm results by running on the full test set
 ```
 Results for vector derived from layer 12 with a 2x multiplier
-model + bias vector => ~40% biased
-model               => ~40% biased
-model - bias vector => ~10% biased
+model + bias vector => ~40% biased answers
+model               => ~40% biased answers
+model - bias vector => ~10% biased answers
 ```
 
 ### Activation vector calculation
