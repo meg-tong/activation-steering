@@ -1,3 +1,4 @@
 __pycache__
+.ipynb_checkpoints
 data/outputs*
 diff_layer_*.pt
