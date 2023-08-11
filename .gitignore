@@ -1,2 +1,3 @@
 __pycache__
+data/outputs*
 diff_layer_*.pt
