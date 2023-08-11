@@ -129,6 +129,7 @@ class ComparisonDataset(Dataset):
         b_text = item[BIASED_ANSWER_KEY]
         ub_text = item[UNBIASED_ANSWER_KEY]
         q_text = item[QUESTION_KEY] + item[CHOICES_KEY]
-        b_tokens = src.model.prompt_to_tokens(self.tokenizer, self.system_prompt, instruction=q_text, model_output=b_text)
-        ub_tokens = src.model.prompt_to_tokens(self.tokenizer, self.system_prompt, instruction=q_text, model_output=ub_text)
+        # NOTE: Matches original but maybe we shouldn't be using .strip()?
+        b_tokens = src.model.prompt_to_tokens(self.tokenizer, self.system_prompt, instruction=q_text, model_output=b_text.strip())
+        ub_tokens = src.model.prompt_to_tokens(self.tokenizer, self.system_prompt, instruction=q_text, model_output=ub_text.strip())
         return b_tokens, ub_tokens

@@ -41,31 +41,33 @@ def generate_vectors(model: Llama7BChatHelper,
         torch.save(vec, os.path.join(directory, f"vector_layer_{layer}.pt"))
         
         
-def get_vec(layer, directory="data/vectors"):
-    return torch.load(os.path.join(directory, f"vector_layer_{layer}.pt"))        
+def get_vector(layer: int, directory: str = "data/vectors"):
+    path = os.path.join(directory, f"vector_layer_{layer}.pt")
+    logging.info(f"Loading vector from {path}")
+    return torch.load(path)        
 
         
 def get_steered_outputs(model: Llama7BChatHelper,
                         prompt: str,
-                        layer: int,
-                        multiplier: int,
+                        vector,
+                        layer: int = 12,
+                        multiplier: int = 2,
                         max_length: int = 20,
                         first_token_only=False,
                         start=" The answer is (",
                         split=" The answer is ("):
     
     model.set_only_add_to_first_token(first_token_only)
-    vec = get_vec(layer)
     pos_multiplier = multiplier
     neg_multiplier = multiplier * -1.0
     model.set_save_internal_decodings(False)
     
     model.reset_all()
-    model.set_add_activations(layer, pos_multiplier * vec.cuda())
+    model.set_add_activations(layer, pos_multiplier * vector.cuda())
     answer_plus_bias = model.generate_text(prompt, model_output=start, max_length=max_length)
     
     model.reset_all()
-    model.set_add_activations(layer, neg_multiplier * vec.cuda())
+    model.set_add_activations(layer, neg_multiplier * vector.cuda())
     answer_minus_bias = model.generate_text(prompt, model_output=start, max_length=max_length)
     
     model.reset_all()
